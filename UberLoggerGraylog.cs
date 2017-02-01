@@ -35,7 +35,7 @@ public class UberLoggerGraylog : UberLogger.ILogger
 	public string hostname;
 	
 	public Dictionary<string, object> meta;
-	
+	private bool is_setup = false;
 
     /// <summary>
     /// Constructor. Make sure to add it to UberLogger via Logger.AddLogger();
@@ -60,15 +60,26 @@ public class UberLoggerGraylog : UberLogger.ILogger
 		// 	throw;
         // }	
 		
-		if (!IPAddress.TryParse (host, out ipAddress))
-			ipAddress = Dns.GetHostEntry(host).AddressList[0];
-			
-		endpoint = new IPEndPoint(ipAddress, 12202);
-		Debug.LogWarning(string.Format("Log final destination: {0}", ipAddress));
+		try
+		{
+			if (!IPAddress.TryParse (host, out ipAddress))
+				ipAddress = Dns.GetHostEntry(host).AddressList[0];
+				
+			endpoint = new IPEndPoint(ipAddress, 12202);
+			Debug.LogWarning(string.Format("Log final destination: {0}", ipAddress));
+			is_setup = true;
+		}
+		catch
+		{
+			Debug.LogError(string.Format("Unable to locate graylog server"));
+		}
     }
 
     public void Log(LogInfo logInfo)
     {
+		if (!is_setup)
+			return;
+			
         lock(this)
         {
 			Dictionary<string, object> msg = new Dictionary<string ,object>(meta);
@@ -99,13 +110,15 @@ public class UberLoggerGraylog : UberLogger.ILogger
 			else
 			{
 				msg["level"] = 7;
-				msg["level_name"] = "DEBUG";
+				msg["_level_name"] = "DEBUG";
 			}
 			
 			if (logInfo.meta != null)
 				msg = msg.Concat(logInfo.meta).ToDictionary(x=>x.Key, x=>x.Value);
 				
-			msg["channel"] = logInfo.Channel;
+			msg["_channel"] = logInfo.Channel;
+			
+			msg["timestamp"] = Utility.GetTimestampDouble();
 			
 			string json = Utility.JsonSerialize(msg);
 			
