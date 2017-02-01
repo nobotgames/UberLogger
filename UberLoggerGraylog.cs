@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using BestHTTP.Decompression.Zlib;
 using System.IO;
+using System.Linq;
 
 using UberLogger;
 using System.IO;
@@ -101,9 +102,14 @@ public class UberLoggerGraylog : UberLogger.ILogger
 				msg["level_name"] = "DEBUG";
 			}
 			
+			if (logInfo.meta != null)
+				msg = msg.Concat(logInfo.meta).ToDictionary(x=>x.Key, x=>x.Value);
+				
+			msg["channel"] = logInfo.Channel;
+			
 			string json = Utility.JsonSerialize(msg);
 			
-			byte[] send_buffer = UDPLogger.Zip(json);
+			byte[] send_buffer = UberLoggerGraylog.Zip(json);
 			
 			max_packet_size = Mathf.Max(max_packet_size, send_buffer.Length);
 			

@@ -140,14 +140,16 @@ namespace UberLogger
         public List<LogStackFrame> Callstack;
         public double TimeStamp;
         string TimeStampAsString;
+		public Dictionary<string, object> meta;
 
         public string GetTimeStampAsString()
         {
             return TimeStampAsString;
         }
 
-        public LogInfo(UnityEngine.Object source, string channel, LogSeverity severity, List<LogStackFrame> callstack, object message, params object[] par)
+        public LogInfo(UnityEngine.Object source, string channel, LogSeverity severity, List<LogStackFrame> callstack, object message, Dictionary<string, object> meta=null, params object[] par)
         {
+			this.meta = meta;
             Source = source;
             Channel = channel;
             Severity = severity;
@@ -415,7 +417,7 @@ namespace UberLogger
         /// Takes a log request, creates the call stack and pumps it to all the backends
         /// </summary>
         [StackTraceIgnore()]
-        static public void Log(string channel, UnityEngine.Object source, LogSeverity severity, object message, params object[] par)
+        static public void Log(string channel, UnityEngine.Object source, LogSeverity severity, object message, Dictionary<string, object> meta=null, params object[] par)
         {
             lock(Loggers)
             {
@@ -431,7 +433,7 @@ namespace UberLogger
                             return;
                         }
 
-                        var logInfo = new LogInfo(source, channel, severity, callstack, message, par);
+                        var logInfo = new LogInfo(source, channel, severity, callstack, message, null, par);
 
                         //Add this message to our history
                         RecentMessages.AddLast(logInfo);
